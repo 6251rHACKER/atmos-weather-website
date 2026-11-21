@@ -1,0 +1,569 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Atmos - live weather and forecast dashboard">
+  <title>Atmos — Weather Dashboard</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['DM Sans', 'sans-serif'],
+            display: ['Manrope', 'sans-serif']
+          },
+          colors: {
+            atmos: {
+              teal: '#1d9b91',
+              dark: '#18394a',
+              pale: '#eaf6f4',
+              paper: '#f5f8fa'
+            }
+          },
+          boxShadow: {
+            soft: '0 14px 40px rgba(32, 63, 78, .055)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      transition: background 900ms ease;
+      background-attachment: fixed !important;
+    }
+
+    body.weather-sunny {
+      background: linear-gradient(135deg, #fff7c2 0%, #ffe89a 42%, #fffdf0 100%) !important;
+    }
+
+    body.weather-rainy {
+      background: linear-gradient(145deg, #52677f 0%, #8194a8 48%, #d2dce5 100%) !important;
+    }
+
+    body.weather-normal {
+      background: linear-gradient(135deg, #b9e5ff 0%, #e3f5ff 52%, #f8fcff 100%) !important;
+    }
+
+    body.weather-snowy {
+      background: linear-gradient(145deg, #dcecf7 0%, #f4faff 55%, #ffffff 100%) !important;
+    }
+
+    #weatherEffects {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .weather-sun {
+      position: absolute;
+      top: 8%;
+      right: 10%;
+      width: 150px;
+      height: 150px;
+      border-radius: 9999px;
+      background: #ffd84d;
+      box-shadow: 0 0 55px 22px rgba(255, 207, 64, .28),
+                  0 0 130px 65px rgba(255, 207, 64, .18);
+      animation: sun-pulse 5s ease-in-out infinite;
+    }
+
+    .weather-cloud {
+      position: absolute;
+      width: 150px;
+      height: 42px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.72);
+      filter: drop-shadow(0 8px 10px rgba(60,100,130,.08));
+      animation: cloud-drift 28s linear infinite;
+    }
+
+    .weather-cloud::before,
+    .weather-cloud::after {
+      content: "";
+      position: absolute;
+      bottom: 12px;
+      border-radius: 50%;
+      background: inherit;
+    }
+
+    .weather-cloud::before {
+      left: 25px;
+      width: 58px;
+      height: 58px;
+    }
+
+    .weather-cloud::after {
+      left: 68px;
+      width: 42px;
+      height: 42px;
+    }
+
+    .weather-rain {
+      position: absolute;
+      inset: -20% 0 0;
+      opacity: .62;
+      background-image: repeating-linear-gradient(
+        105deg,
+        transparent 0 28px,
+        rgba(255,255,255,.62) 29px 31px,
+        transparent 32px 58px
+      );
+      background-size: 58px 100px;
+      animation: rain-fall .55s linear infinite;
+    }
+
+    .weather-wind {
+      position: absolute;
+      inset: 0;
+      opacity: .58;
+    }
+
+    .weather-wind span {
+      position: absolute;
+      left: -35%;
+      width: 38%;
+      height: 2px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.8);
+      box-shadow: 0 0 8px rgba(255,255,255,.35);
+      animation: wind-sweep 3.2s linear infinite;
+    }
+
+    .weather-wind span:nth-child(1) {
+      top: 24%;
+      animation-delay: -.4s;
+    }
+
+    .weather-wind span:nth-child(2) {
+      top: 43%;
+      width: 27%;
+      animation-delay: -1.8s;
+    }
+
+    .weather-wind span:nth-child(3) {
+      top: 67%;
+      width: 44%;
+      animation-delay: -2.5s;
+    }
+
+    .weather-snow {
+      position: absolute;
+      inset: 0;
+    }
+
+    .weather-snow span {
+      position: absolute;
+      top: -12%;
+      color: rgba(255,255,255,.95);
+      font-size: 18px;
+      text-shadow: 0 1px 5px rgba(100,140,170,.2);
+      animation: snow-fall linear infinite;
+    }
+
+    .weather-snow span:nth-child(1) {
+      left: 8%;
+      animation-duration: 12s;
+    }
+
+    .weather-snow span:nth-child(2) {
+      left: 23%;
+      animation-duration: 16s;
+      animation-delay: -5s;
+      font-size: 13px;
+    }
+
+    .weather-snow span:nth-child(3) {
+      left: 42%;
+      animation-duration: 14s;
+      animation-delay: -8s;
+    }
+
+    .weather-snow span:nth-child(4) {
+      left: 61%;
+      animation-duration: 18s;
+      animation-delay: -3s;
+      font-size: 14px;
+    }
+
+    .weather-snow span:nth-child(5) {
+      left: 79%;
+      animation-duration: 13s;
+      animation-delay: -7s;
+    }
+
+    .weather-snow span:nth-child(6) {
+      left: 93%;
+      animation-duration: 17s;
+      animation-delay: -10s;
+      font-size: 12px;
+    }
+
+    @keyframes sun-pulse {
+      50% {
+        transform: scale(1.06);
+        opacity: .9;
+      }
+    }
+
+    @keyframes cloud-drift {
+      from {
+        transform: translateX(-190px);
+      }
+      to {
+        transform: translateX(calc(100vw + 190px));
+      }
+    }
+
+    @keyframes rain-fall {
+      to {
+        background-position: -58px 100px;
+      }
+    }
+
+    @keyframes wind-sweep {
+      to {
+        transform: translateX(180vw);
+      }
+    }
+
+    @keyframes snow-fall {
+      to {
+        transform: translate3d(70px, 115vh, 0) rotate(260deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #weatherEffects *,
+      #weatherEffects *::before,
+      #weatherEffects *::after {
+        animation: none !important;
+      }
+    }
+  </style>
+
+  <script src="script.js" defer></script>
+</head>
+
+<body class="min-h-screen bg-atmos-paper font-sans text-slate-800">
+
+  <div id="weatherEffects" aria-hidden="true"></div>
+
+  <div class="relative z-10 mx-auto min-h-screen max-w-[1600px] md:grid md:grid-cols-[245px_minmax(0,1fr)]">
+
+    <!-- Sidebar -->
+    <aside class="flex flex-col border-b border-slate-100 bg-white px-5 py-5 md:sticky md:top-0 md:h-screen md:border-b-0 md:border-r md:px-6 md:py-8">
+
+      <a href="#" class="mb-6 flex items-center gap-3 font-display text-2xl font-extrabold tracking-tight text-atmos-dark md:mb-14">
+        <span class="flex h-7 items-end gap-1">
+          <span class="h-3 w-1.5 -skew-x-12 rounded-full bg-atmos-teal/60"></span>
+          <span class="h-6 w-1.5 -skew-x-12 rounded-full bg-atmos-teal"></span>
+          <span class="h-4 w-1.5 -skew-x-12 rounded-full bg-atmos-teal/80"></span>
+        </span>
+        atmos<span class="text-atmos-teal">.</span>
+      </a>
+
+      <p class="mb-3 hidden px-2 text-[10px] font-bold tracking-[.16em] text-slate-400 md:block">
+        WORKSPACE
+      </p>
+
+      <nav class="hidden gap-2 md:grid">
+        <a href="#overview" class="rounded-xl bg-atmos-pale px-4 py-3 text-sm font-semibold text-teal-800">
+          ◫ &nbsp; Overview
+        </a>
+
+        <a href="#forecast" class="rounded-xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-50">
+          ▤ &nbsp; Forecast
+        </a>
+      </nav>
+
+      <div class="mt-5 flex items-center justify-between md:mt-12">
+        <p class="text-[10px] font-bold tracking-[.16em] text-slate-400">
+          SAVED PLACES
+        </p>
+
+        <button id="clearFavorites" type="button" class="text-xs text-slate-400 transition hover:text-rose-500">
+          Clear
+        </button>
+      </div>
+
+      <div id="favoritesList" class="mt-3 flex gap-2 overflow-x-auto md:grid md:overflow-visible">
+        <p class="whitespace-nowrap px-2 text-xs text-slate-400">
+          Your saved cities will appear here.
+        </p>
+      </div>
+
+      <div class="mt-auto hidden pt-10 md:block">
+        <div class="rounded-2xl bg-teal-50 p-4">
+          <div class="text-2xl text-amber-500">☼</div>
+
+          <p class="mt-2 text-sm font-bold text-slate-800">
+            Weather, at a glance.
+          </p>
+
+          <p class="mt-1 text-xs leading-5 text-slate-500">
+            Search any city to see its latest conditions and forecast.
+          </p>
+        </div>
+
+        <p class="mt-6 text-[9px] font-bold leading-5 tracking-widest text-slate-400">
+          LIVE WEATHER DATA<br>
+          <span class="font-normal tracking-normal">Powered by Open-Meteo</span>
+        </p>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main id="overview" class="min-w-0 px-4 py-7 sm:px-7 lg:px-12 lg:py-10">
+
+      <header class="mb-7 flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
+
+        <div>
+          <p id="todayLabel" class="mb-2 text-[10px] font-bold tracking-[.16em] text-slate-400">
+            YOUR WEATHER OVERVIEW
+          </p>
+
+          <h1 class="font-display text-3xl font-extrabold tracking-tight text-atmos-dark sm:text-4xl">
+            Good day<span class="text-atmos-teal">.</span>
+          </h1>
+        </div>
+
+        <div class="flex w-full gap-2 xl:w-auto">
+
+          <form id="searchForm" class="flex min-w-0 flex-1 items-center rounded-xl border border-slate-100 bg-white p-1.5 shadow-sm xl:w-[340px] xl:flex-none">
+            <span class="pl-2 text-xl text-slate-400">⌕</span>
+
+            <input
+              id="cityInput"
+              type="search"
+              placeholder="Search for a city..."
+              aria-label="Search for a city"
+              required
+              class="min-w-0 flex-1 bg-transparent px-3 py-2 text-xs text-slate-700 outline-none placeholder:text-slate-400"
+            >
+
+            <button type="submit" class="rounded-lg bg-atmos-teal px-4 py-2.5 text-xs font-bold text-white transition hover:bg-teal-700">
+              Search
+            </button>
+          </form>
+
+          <button id="unitToggle" type="button" aria-label="Switch temperature unit"
+            class="shrink-0 rounded-xl border border-slate-100 bg-white px-3 text-xs font-bold text-atmos-teal shadow-sm">
+            °C / °F
+          </button>
+        </div>
+      </header>
+
+      <div id="statusMessage" role="status" aria-live="polite" hidden class="mb-5 rounded-xl px-4 py-3 text-sm"></div>
+
+      <!-- Current weather and highlights -->
+      <section class="grid gap-5 xl:grid-cols-2">
+
+        <article class="relative min-h-[295px] overflow-hidden rounded-2xl bg-gradient-to-br from-[#1b4857] to-[#246c72] p-6 text-white shadow-soft sm:p-7">
+
+          <div class="pointer-events-none absolute -right-24 top-16 h-64 w-64 rounded-full border border-white/10 shadow-[0_0_0_28px_rgba(255,255,255,.025),0_0_0_58px_rgba(255,255,255,.02)]"></div>
+
+          <div class="relative z-10 flex items-start justify-between">
+            <div>
+              <p class="mb-2 text-[10px] font-bold tracking-[.16em] text-teal-100/70">
+                CURRENT WEATHER
+              </p>
+
+              <h2 id="cityName" class="font-display text-xl font-bold">
+                Loading city...
+              </h2>
+
+              <p id="currentDate" class="mt-1 text-xs text-teal-100/80">
+                Please wait
+              </p>
+            </div>
+
+            <button id="favoriteButton" type="button" aria-label="Save this city" title="Save this city"
+              class="h-9 w-9 rounded-xl border border-white/20 bg-white/10 text-xl text-white transition hover:bg-white/20">
+              ☆
+            </button>
+          </div>
+
+          <div class="relative z-10 flex items-center justify-between py-7">
+            <div>
+              <div id="currentTemp" class="font-display text-6xl font-medium tracking-tighter">
+                --<span class="text-3xl">°</span>
+              </div>
+
+              <p id="conditionText" class="mt-2 text-sm font-semibold">
+                Getting conditions...
+              </p>
+
+              <p id="feelsLike" class="mt-1 text-xs text-teal-100/80">
+                Feels like --°
+              </p>
+            </div>
+
+            <div id="weatherIllustration" aria-hidden="true" class="pr-3 text-7xl text-amber-200 drop-shadow-lg">
+              ☀
+            </div>
+          </div>
+
+          <div class="relative z-10 h-px bg-white/20"></div>
+
+          <div class="relative z-10 grid grid-cols-3 gap-3 pt-4">
+            <div>
+              <p class="text-[10px] text-teal-100/75">⌁ &nbsp; Wind</p>
+              <strong id="windValue" class="mt-1 block text-xs">-- km/h</strong>
+            </div>
+
+            <div>
+              <p class="text-[10px] text-teal-100/75">◌ &nbsp; Humidity</p>
+              <strong id="humidityValue" class="mt-1 block text-xs">--%</strong>
+            </div>
+
+            <div>
+              <p class="text-[10px] text-teal-100/75">☂ &nbsp; Rain</p>
+              <strong id="rainValue" class="mt-1 block text-xs">-- mm</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft sm:p-6">
+
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="mb-1 text-[10px] font-bold tracking-[.16em] text-slate-400">
+                AT A GLANCE
+              </p>
+
+              <h2 class="font-display text-lg font-bold text-atmos-dark">
+                Today's highlights
+              </h2>
+            </div>
+
+            <span class="rounded-full bg-emerald-50 px-3 py-1.5 text-[9px] font-extrabold tracking-wider text-emerald-700">
+              ● LIVE
+            </span>
+          </div>
+
+          <div class="mt-5 grid grid-cols-2 gap-3">
+
+            <div class="min-h-24 rounded-xl border border-slate-100 p-3">
+              <div class="flex justify-between text-[9px] font-bold tracking-wider text-slate-400">
+                <span>UV INDEX</span>
+                <span class="text-base text-amber-500">☼</span>
+              </div>
+
+              <strong id="uvValue" class="mt-2 block font-display text-xl">--</strong>
+              <p id="uvDescription" class="text-[10px] text-slate-400">Waiting for data</p>
+
+              <div class="mt-2 h-1 overflow-hidden rounded-full bg-slate-100">
+                <span id="uvBar" class="block h-full w-0 rounded-full bg-amber-400 transition-all"></span>
+              </div>
+            </div>
+
+            <div class="min-h-24 rounded-xl border border-slate-100 p-3">
+              <div class="flex justify-between text-[9px] font-bold tracking-wider text-slate-400">
+                <span>WIND DIRECTION</span>
+                <span class="text-base text-amber-500">➤</span>
+              </div>
+
+              <strong id="windDirection" class="mt-2 block font-display text-xl">--</strong>
+              <p id="windDirectionText" class="text-[10px] text-slate-400">--</p>
+            </div>
+
+            <div class="min-h-24 rounded-xl border border-slate-100 p-3">
+              <div class="flex justify-between text-[9px] font-bold tracking-wider text-slate-400">
+                <span>VISIBILITY</span>
+                <span class="text-base text-amber-500">◎</span>
+              </div>
+
+              <strong id="visibilityValue" class="mt-2 block font-display text-xl">--</strong>
+              <p class="text-[10px] text-slate-400">Estimated visibility</p>
+            </div>
+
+            <div class="min-h-24 rounded-xl border border-slate-100 p-3">
+              <div class="flex justify-between text-[9px] font-bold tracking-wider text-slate-400">
+                <span>SUNRISE &amp; SUNSET</span>
+                <span class="text-base text-amber-500">◒</span>
+              </div>
+
+              <strong id="sunriseValue" class="mt-2 block font-display text-xl">--</strong>
+              <p id="sunsetValue" class="text-[10px] text-slate-400">Sunset --</p>
+            </div>
+
+          </div>
+        </article>
+      </section>
+
+      <!-- Hourly forecast -->
+      <section id="forecast" class="mt-5 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft sm:p-6">
+
+        <div class="mb-5 flex items-center justify-between">
+          <div>
+            <p class="mb-1 text-[10px] font-bold tracking-[.16em] text-slate-400">
+              PLAN AHEAD
+            </p>
+
+            <h2 class="font-display text-lg font-bold text-atmos-dark">
+              Next 24 hours
+            </h2>
+          </div>
+
+          <span class="text-[9px] font-bold tracking-wider text-slate-400">
+            HOURLY FORECAST
+          </span>
+        </div>
+
+        <div id="hourlyForecast" class="grid grid-flow-col auto-cols-[75px] gap-2 overflow-x-auto pb-2">
+          <p class="text-xs text-slate-400">Hourly forecast will appear here.</p>
+        </div>
+      </section>
+
+      <!-- Daily forecast -->
+      <section class="mt-5 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft sm:p-6">
+
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <p class="mb-1 text-[10px] font-bold tracking-[.16em] text-slate-400">
+              THE WEEK AHEAD
+            </p>
+
+            <h2 class="font-display text-lg font-bold text-atmos-dark">
+              7-day forecast
+            </h2>
+          </div>
+
+          <span class="text-[9px] font-bold tracking-wider text-slate-400">
+            DAILY OUTLOOK
+          </span>
+        </div>
+
+        <div id="dailyForecast" class="divide-y divide-slate-100">
+          <p class="py-3 text-xs text-slate-400">Daily forecast will appear here.</p>
+        </div>
+      </section>
+
+      <footer class="flex flex-wrap justify-between gap-2 px-1 pb-3 pt-6 text-[10px] text-slate-400">
+        <span>Atmos Weather Dashboard</span>
+
+        <span>
+          Weather data provided by
+          <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" class="text-teal-700 hover:underline">
+            Open-Meteo
+          </a>
+        </span>
+      </footer>
+
+    </main>
+  </div>
+</body>
+</html>
